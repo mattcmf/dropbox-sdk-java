@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.JsonParseException;
 
 import com.dropbox.core.stone.StoneSerializer;
 import com.dropbox.core.http.HttpRequestor;
+import com.dropbox.core.v2.callbacks.DbxGlobalErrorCallback;
+import com.dropbox.core.v2.callbacks.DbxRouteErrorCallback;
 
 /**
  * For internal use only.
@@ -42,6 +44,14 @@ public final class DbxWrappedException extends Exception {
         ApiErrorResponse<T> apiResponse = new ApiErrorResponse.Serializer<T>(errSerializer)
             .deserialize(response.getBody());
 
-        return new DbxWrappedException(apiResponse.getError(), requestId, apiResponse.getUserMessage());
+        T routeError = apiResponse.getError();
+
+        DbxRouteErrorCallback<T> callback = DbxGlobalErrorCallback.getRouteErrorCallback(routeError.getClass());
+        if (callback != null) {
+            callback.setRouteError(routeError);
+            callback.run();
+        }
+
+        return new DbxWrappedException(routeError, requestId, apiResponse.getUserMessage());
     }
 }

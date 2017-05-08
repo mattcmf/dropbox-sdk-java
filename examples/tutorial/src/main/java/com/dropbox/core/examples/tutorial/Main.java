@@ -2,6 +2,9 @@ package com.dropbox.core.examples.tutorial;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
+import com.dropbox.core.v2.callbacks.DbxGlobalErrorCallback;
+import com.dropbox.core.v2.callbacks.DbxNetworkErrorCallback;
+import com.dropbox.core.v2.callbacks.DbxRouteErrorCallback;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
@@ -40,10 +43,23 @@ public class Main {
             result = client.files().listFolderContinue(result.getCursor());
         }
 
-        // Upload "test.txt" to Dropbox
-        try (InputStream in = new FileInputStream("test.txt")) {
-            FileMetadata metadata = client.files().uploadBuilder("/test.txt")
-                .uploadAndFinish(in);
+        DbxGlobalErrorCallback.setNetworkErrorCallback(new DbxNetworkErrorCallback() {
+            public void run() {
+                System.out.println("In global block");
+                System.out.println(self.exception);
+            }
+        });
+        try {
+            ListFolderResult resultNew = client.files().listFolder("/does/not/exist");
+        } catch (DbxException e) {
+            System.out.println("In normal block");
+            System.out.println(e);
         }
+
+//        // Upload "test.txt" to Dropbox
+//        try (InputStream in = new FileInputStream("test.txt")) {
+//            FileMetadata metadata = client.files().uploadBuilder("/test.txt")
+//                .uploadAndFinish(in);
+//        }
     }
 }
